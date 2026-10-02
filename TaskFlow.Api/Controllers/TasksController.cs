@@ -20,7 +20,14 @@ public class TasksController : ControllerBase
     {
         var tasks = await _taskService.GetAllAsync();
 
-        return Ok(tasks);
+        var response = tasks.Select(task => new TaskResponse
+        {
+            Id = task.Id,
+            Title = task.Title,
+            Description = task.Description
+        }).ToList();
+
+        return Ok(response);
     }
 
     [HttpGet("{id:int}")]
@@ -33,7 +40,14 @@ public class TasksController : ControllerBase
             return NotFound();
         }
 
-        return Ok(task);
+        var response = new TaskResponse
+        {
+            Id = task.Id,
+            Title = task.Title,
+            Description = task.Description
+        };
+
+        return Ok(response);
     }
 
     [HttpPost]
@@ -41,7 +55,14 @@ public class TasksController : ControllerBase
     {
         var task = await _taskService.CreateAsync(request);
 
-        return Ok(task);
+        var response = new TaskResponse
+        {
+            Id = task.Id,
+            Title = task.Title,
+            Description = task.Description
+        };
+
+        return Ok(response);
     }
 
     [HttpPut("{id:int}")]
@@ -56,7 +77,14 @@ public class TasksController : ControllerBase
             return NotFound();
         }
 
-        return Ok(task);
+        var response = new TaskResponse
+        {
+            Id = task.Id,
+            Title = task.Title,
+            Description = task.Description
+        };
+
+        return Ok(response);
     }
 
     [HttpDelete("{id:int}")]
