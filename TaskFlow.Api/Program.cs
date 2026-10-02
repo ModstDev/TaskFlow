@@ -11,6 +11,8 @@ builder.Services.AddDbContext<TaskFlowDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -20,28 +22,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/tasks", async (TaskFlowDbContext db) =>
-{
-    var tasks = await db.Tasks.ToListAsync();
-
-    return tasks;
-});
-
-app.MapPost("/tasks", async (
-    CreateTaskRequest request,
-    TaskFlowDbContext db) =>
-{
-    var task = new TaskItem
-    {
-        Title = request.Title,
-        Description = request.Description
-    };
-
-    db.Tasks.Add(task);
-
-    await db.SaveChangesAsync();
-
-    return task;
-});
+app.MapControllers();
 
 app.Run();
