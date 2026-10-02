@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TaskFlow.Api.Data;
 using TaskFlow.Api.DTOs.Tasks;
-using TaskFlow.Api.Entities;
+using TaskFlow.Api.Services;
 
 namespace TaskFlow.Api.Controllers;
 
@@ -10,17 +8,17 @@ namespace TaskFlow.Api.Controllers;
 [Route("api/[controller]")]
 public class TasksController : ControllerBase
 {
-    private readonly TaskFlowDbContext _db;
+    private readonly ITaskService _taskService;
 
-    public TasksController(TaskFlowDbContext db)
+    public TasksController(ITaskService taskService)
     {
-        _db = db;
+        _taskService = taskService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetTasks()
     {
-        var tasks = await _db.Tasks.ToListAsync();
+        var tasks = await _taskService.GetAllAsync();
 
         return Ok(tasks);
     }
@@ -28,7 +26,7 @@ public class TasksController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetTask(int id)
     {
-        var task = await _db.Tasks.FindAsync(id);
+        var task = await _taskService.GetByIdAsync(id);
 
         if (task is null)
         {
@@ -41,36 +39,36 @@ public class TasksController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateTask(CreateTaskRequest request)
     {
-        var task = new TaskItem
-        {
-            Title = request.Title,
-            Description = request.Description
-        };
-
-        _db.Tasks.Add(task);
-
-        await _db.SaveChangesAsync();
+        var task = await _taskService.CreateAsync(request);
 
         return Ok(task);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateTask(
-    int id,
-    UpdateTaskRequest request)
+        int id,
+        UpdateTaskRequest request)
     {
-        var task = await _db.Tasks.FindAsync(id);
+        var task = await _taskService.UpdateAsync(id, request);
 
         if (task is null)
         {
             return NotFound();
         }
 
-        task.Title = request.Title;
-        task.Description = request.Description;
-
-        await _db.SaveChangesAsync();
-
         return Ok(task);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteTask(int id)
+    {
+        var deleted = await _taskService.DeleteAsync(id);
+
+        if (!deleted)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
     }
 }

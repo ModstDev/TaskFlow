@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskFlow.Api.Data;
 using TaskFlow.Api.Entities;
 using TaskFlow.Api.DTOs.Tasks;
+using TaskFlow.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,8 @@ builder.Services.AddDbContext<TaskFlowDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
+
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 var app = builder.Build();
 
