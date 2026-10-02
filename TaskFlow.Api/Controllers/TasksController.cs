@@ -10,7 +10,7 @@ namespace TaskFlow.Api.Controllers;
 [Route("api/[controller]")]
 public class TasksController : ControllerBase
 {
-   private readonly TaskFlowDbContext _db;
+    private readonly TaskFlowDbContext _db;
 
     public TasksController(TaskFlowDbContext db)
     {
@@ -23,6 +23,19 @@ public class TasksController : ControllerBase
         var tasks = await _db.Tasks.ToListAsync();
 
         return Ok(tasks);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetTask(int id)
+    {
+        var task = await _db.Tasks.FindAsync(id);
+
+        if (task is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(task);
     }
 
     [HttpPost]
