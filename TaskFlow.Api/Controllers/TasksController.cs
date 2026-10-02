@@ -53,4 +53,24 @@ public class TasksController : ControllerBase
 
         return Ok(task);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateTask(
+    int id,
+    UpdateTaskRequest request)
+    {
+        var task = await _db.Tasks.FindAsync(id);
+
+        if (task is null)
+        {
+            return NotFound();
+        }
+
+        task.Title = request.Title;
+        task.Description = request.Description;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(task);
+    }
 }
