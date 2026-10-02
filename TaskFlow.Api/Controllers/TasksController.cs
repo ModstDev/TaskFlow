@@ -62,7 +62,7 @@ public class TasksController : ControllerBase
             Description = task.Description
         };
 
-        return Ok(response);
+        return CreatedAtAction(nameof(GetTask), new { id = task.Id }, response);
     }
 
     [HttpPut("{id:int}")]
