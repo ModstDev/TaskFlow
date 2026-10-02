@@ -22,6 +22,11 @@ public class TaskFlowDbContext : DbContext
 
             entity.Property(t => t.Description)
                 .HasMaxLength(2000);
+
+            entity.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
