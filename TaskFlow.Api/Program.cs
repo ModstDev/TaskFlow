@@ -1,14 +1,15 @@
-using TaskFlow.Api.Entities;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Api.Data;
+using TaskFlow.Api.Entities;
+using TaskFlow.Api.DTOs.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<TaskFlowDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -19,25 +20,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var tasks = new List<TaskItem>
+app.MapGet("/tasks", async (TaskFlowDbContext db) =>
 {
-    new TaskItem
-    {
-        Id = 1,
-        Title = "Learn C# backend",
-        Description = "Understand how ASP.NET Core works"
-    },
-    new TaskItem
-    {
-        Id = 2,
-        Title = "Learn Entity Framework",
-        Description = "Connect the API to a database"
-    }
-};
+    var tasks = await db.Tasks.ToListAsync();
 
-app.MapGet("/tasks", () =>
-{
     return tasks;
+});
+
+app.MapPost("/tasks", async (
+    CreateTaskRequest request,
+    TaskFlowDbContext db) =>
+{
+    var task = new TaskItem
+    {
+        Title = request.Title,
+        Description = request.Description
+    };
+
+    db.Tasks.Add(task);
+
+    await db.SaveChangesAsync();
+
+    return task;
 });
 
 app.Run();
