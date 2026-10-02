@@ -11,4 +11,17 @@ public class TaskFlowDbContext : DbContext
     }
 
     public DbSet<TaskItem> Tasks { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TaskItem>(entity =>
+        {
+            entity.Property(t => t.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(t => t.Description)
+                .HasMaxLength(2000);
+        });
+    }
 }
