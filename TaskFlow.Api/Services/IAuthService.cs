@@ -6,5 +6,5 @@ namespace TaskFlow.Api.Services;
 public interface IAuthService
 {
     Task<User?> RegisterAsync(RegisterRequest request);
-    Task<User?> LoginAsync(LoginRequest request);
+    Task<LoginResponse?> LoginAsync(LoginRequest request);
 }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TaskFlow.Api.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,10 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt"));
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

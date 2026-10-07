@@ -10,13 +10,16 @@ public class AuthService : IAuthService
 {
     private readonly TaskFlowDbContext _db;
     private readonly PasswordHasher<User> _passwordHasher;
+    private readonly ITokenService _tokenService;
 
     public AuthService(
-        TaskFlowDbContext db,
-        PasswordHasher<User> passwordHasher)
+    TaskFlowDbContext db,
+    PasswordHasher<User> passwordHasher,
+    ITokenService tokenService)
     {
         _db = db;
         _passwordHasher = passwordHasher;
+        _tokenService = tokenService;
     }
 
     public async Task<User?> RegisterAsync(RegisterRequest request)
@@ -47,7 +50,7 @@ public class AuthService : IAuthService
 
         return user;
     }
-    public async Task<User?> LoginAsync(LoginRequest request)
+    public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         var user = await _db.Users
             .FirstOrDefaultAsync(u => u.Email == request.Email);
@@ -67,6 +70,12 @@ public class AuthService : IAuthService
             return null;
         }
 
-        return user;
+        var accessToken = _tokenService.GenerateAccessToken(user);
+
+        return new LoginResponse
+        {
+            AccessToken = accessToken.AccessToken,
+            ExpiresIn = accessToken.ExpiresIn
+        };
     }
 }
