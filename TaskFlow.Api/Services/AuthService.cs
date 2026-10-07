@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using TaskFlow.Api.Data;
 using TaskFlow.Api.DTOs.Auth;
 using TaskFlow.Api.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace TaskFlow.Api.Services;
 
@@ -18,8 +19,18 @@ public class AuthService : IAuthService
         _passwordHasher = passwordHasher;
     }
 
-    public async Task<User> RegisterAsync(RegisterRequest request)
+    public async Task<User?> RegisterAsync(RegisterRequest request)
     {
+        var existingUser = await _db.Users
+            .FirstOrDefaultAsync(u =>
+                u.Username == request.Username ||
+                u.Email == request.Email);
+
+        if (existingUser is not null)
+        {
+            return null;
+        }
+
         var user = new User
         {
             Username = request.Username,

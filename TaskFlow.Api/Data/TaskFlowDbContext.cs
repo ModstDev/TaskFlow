@@ -29,5 +29,25 @@ public class TaskFlowDbContext : DbContext
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.Property(u => u.Username)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(u => u.Email)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(u => u.PasswordHash)
+                .IsRequired();
+
+            entity.HasIndex(u => u.Username)
+                .IsUnique();
+            
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
+        });
     }
 }

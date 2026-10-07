@@ -20,6 +20,14 @@ public class AuthController : ControllerBase
     {
         var user = await _authService.RegisterAsync(request);
 
+        if (user is null)
+        {
+            return Conflict(new
+            {
+                Message = "Username or email is already taken."
+            });
+        }
+
         var response = new UserResponse
         {
             Id = user.Id,
@@ -27,6 +35,6 @@ public class AuthController : ControllerBase
             Email = user.Email
         };
 
-        return Ok(response);
+        return StatusCode(StatusCodes.Status201Created, response);
     }
 }

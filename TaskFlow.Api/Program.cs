@@ -3,6 +3,7 @@ using TaskFlow.Api.Data;
 using TaskFlow.Api.Entities;
 using TaskFlow.Api.DTOs.Tasks;
 using TaskFlow.Api.Services;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddDbContext<TaskFlowDbContext>(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<PasswordHasher<User>>();
 
 var app = builder.Build();
 
