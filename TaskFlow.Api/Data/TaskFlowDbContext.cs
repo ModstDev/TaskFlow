@@ -12,6 +12,7 @@ public class TaskFlowDbContext : DbContext
 
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,9 +46,24 @@ public class TaskFlowDbContext : DbContext
 
             entity.HasIndex(u => u.Username)
                 .IsUnique();
-            
+
             entity.HasIndex(u => u.Email)
                 .IsUnique();
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.Property(r => r.Token)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.HasIndex(r => r.Token)
+                .IsUnique();
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
