@@ -47,4 +47,26 @@ public class AuthService : IAuthService
 
         return user;
     }
+    public async Task<User?> LoginAsync(LoginRequest request)
+    {
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u => u.Email == request.Email);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        var result = _passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            request.Password);
+
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return null;
+        }
+
+        return user;
+    }
 }
