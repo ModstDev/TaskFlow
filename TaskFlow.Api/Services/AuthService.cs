@@ -86,4 +86,29 @@ public class AuthService : IAuthService
             ExpiresIn = accessToken.ExpiresIn
         };
     }
+
+    public async Task<LoginResponse?> RefreshAsync(string refreshToken)
+    {
+        var user = await _refreshTokenService
+            .ValidateAsync(refreshToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        await _refreshTokenService.RevokeAsync(refreshToken);
+
+        var token = _tokenService.GenerateAccessToken(user);
+
+        var newRefreshToken =
+            await _refreshTokenService.CreateAsync(user);
+
+        return new LoginResponse
+        {
+            AccessToken = token.AccessToken,
+            RefreshToken = newRefreshToken,
+            ExpiresIn = token.ExpiresIn
+        };
+    }
 }
