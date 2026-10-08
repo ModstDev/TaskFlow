@@ -25,6 +25,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));

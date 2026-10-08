@@ -12,14 +12,18 @@ public class AuthService : IAuthService
     private readonly PasswordHasher<User> _passwordHasher;
     private readonly ITokenService _tokenService;
 
+    private readonly IRefreshTokenService _refreshTokenService;
+
     public AuthService(
     TaskFlowDbContext db,
     PasswordHasher<User> passwordHasher,
-    ITokenService tokenService)
+    ITokenService tokenService,
+    IRefreshTokenService refreshTokenService)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
+        _refreshTokenService = refreshTokenService;
     }
 
     public async Task<User?> RegisterAsync(RegisterRequest request)
@@ -72,9 +76,13 @@ public class AuthService : IAuthService
 
         var accessToken = _tokenService.GenerateAccessToken(user);
 
+        var refreshToken =
+            await _refreshTokenService.CreateAsync(user);
+
         return new LoginResponse
         {
             AccessToken = accessToken.AccessToken,
+            RefreshToken = refreshToken,
             ExpiresIn = accessToken.ExpiresIn
         };
     }
