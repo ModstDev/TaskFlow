@@ -111,4 +111,9 @@ public class AuthService : IAuthService
             ExpiresIn = token.ExpiresIn
         };
     }
+
+    public async Task LogoutAsync(string refreshToken)
+    {
+        await _refreshTokenService.RevokeAsync(refreshToken);
+    }
 }
