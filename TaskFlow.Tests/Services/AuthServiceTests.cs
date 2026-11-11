@@ -227,6 +227,62 @@ public class AuthServiceTests
     }
 
 
+    [Theory]
+    [InlineData("testuser", "different@example.com")]
+    [InlineData("differentuser", "test@example.com")]
+    public async Task RegisterAsync_WithDuplicateUsernameOrEmail_ReturnsNull(
+        string username,
+        string email)
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var passwordHasher = new PasswordHasher<User>();
+
+        var existingUser = new User
+        {
+            Username = "testuser",
+            Email = "test@example.com"
+        };
+
+        existingUser.PasswordHash = passwordHasher.HashPassword(
+            existingUser,
+            "Password123!");
+
+        db.Users.Add(existingUser);
+        await db.SaveChangesAsync();
+
+        var authService = new AuthService(
+            db,
+            passwordHasher,
+            new FakeTokenService(),
+            new FakeRefreshTokenService());
+
+        var request = new RegisterRequest
+        {
+            Username = username,
+            Email = email,
+            Password = "AnotherPassword123!"
+        };
+
+        // Act
+        var result = await authService.RegisterAsync(request);
+
+        // Assert
+        Assert.Null(result);
+
+        // The existing user should be the only user in the database.
+        Assert.Equal(1, await db.Users.CountAsync());
+    }
+
     private class FakeTokenService : ITokenService
     {
         public int CallCount { get; private set; }
