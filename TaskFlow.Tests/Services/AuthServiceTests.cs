@@ -72,6 +72,105 @@ public class AuthServiceTests
         Assert.Equal(1, refreshTokenService.CallCount);
     }
 
+
+    [Fact]
+    public async Task LoginAsync_WithIncorrectPassword_ReturnsNull()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var passwordHasher = new PasswordHasher<User>();
+
+        var user = new User
+        {
+            Username = "testuser",
+            Email = "test@example.com"
+        };
+
+        user.PasswordHash = passwordHasher.HashPassword(
+            user,
+            "CorrectPassword123!");
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var tokenService = new FakeTokenService();
+        var refreshTokenService = new FakeRefreshTokenService();
+
+        var authService = new AuthService(
+            db,
+            passwordHasher,
+            tokenService,
+            refreshTokenService);
+
+        var request = new LoginRequest
+        {
+            Email = "test@example.com",
+            Password = "WrongPassword123!"
+        };
+
+        // Act
+        var response = await authService.LoginAsync(request);
+
+        // Assert
+        Assert.Null(response);
+
+        Assert.Equal(0, tokenService.CallCount);
+        Assert.Equal(0, refreshTokenService.CallCount);
+    }
+
+
+    [Fact]
+    public async Task LoginAsync_WithUnknownEmail_ReturnsNull()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var passwordHasher = new PasswordHasher<User>();
+
+        var tokenService = new FakeTokenService();
+        var refreshTokenService = new FakeRefreshTokenService();
+
+        var authService = new AuthService(
+            db,
+            passwordHasher,
+            tokenService,
+            refreshTokenService);
+
+        var request = new LoginRequest
+        {
+            Email = "unknown@example.com",
+            Password = "Password123!"
+        };
+
+        // Act
+        var response = await authService.LoginAsync(request);
+
+        // Assert
+        Assert.Null(response);
+
+        Assert.Equal(0, tokenService.CallCount);
+        Assert.Equal(0, refreshTokenService.CallCount);
+    }
+
+
+
     private class FakeTokenService : ITokenService
     {
         public int CallCount { get; private set; }
