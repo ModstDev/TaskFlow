@@ -383,6 +383,38 @@ public class AuthServiceTests
     }
 
 
+    [Fact]
+    public async Task LogoutAsync_RevokesRefreshToken()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+
+        var refreshTokenService = new FakeRefreshTokenService();
+
+        var authService = new AuthService(
+            db,
+            new PasswordHasher<User>(),
+            new FakeTokenService(),
+            refreshTokenService);
+
+        var refreshToken = "test-refresh-token";
+
+        // Act
+        await authService.LogoutAsync(refreshToken);
+
+        // Assert
+        Assert.Equal(1, refreshTokenService.RevokeCallCount);
+        Assert.Equal(refreshToken, refreshTokenService.RevokedToken);
+    }
+
+
     private class FakeTokenService : ITokenService
     {
         public int CallCount { get; private set; }
