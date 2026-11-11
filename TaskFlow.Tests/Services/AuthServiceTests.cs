@@ -170,6 +170,62 @@ public class AuthServiceTests
     }
 
 
+    [Fact]
+    public async Task RegisterAsync_WithValidData_CreatesUserWithHashedPassword()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var passwordHasher = new PasswordHasher<User>();
+
+        var authService = new AuthService(
+            db,
+            passwordHasher,
+            new FakeTokenService(),
+            new FakeRefreshTokenService());
+
+        var request = new RegisterRequest
+        {
+            Username = "newuser",
+            Email = "newuser@example.com",
+            Password = "Password123!"
+        };
+
+        // Act
+        var user = await authService.RegisterAsync(request);
+
+        // Assert
+        Assert.NotNull(user);
+
+        Assert.True(user.Id > 0);
+        Assert.Equal("newuser", user.Username);
+        Assert.Equal("newuser@example.com", user.Email);
+
+        // Verify that the original password wasn't stored.
+        Assert.NotEqual(request.Password, user.PasswordHash);
+
+        // Verify that the stored hash matches the original password.
+        var verificationResult = passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            request.Password);
+
+        Assert.Equal(
+            PasswordVerificationResult.Success,
+            verificationResult);
+
+        // Verify that the user was saved to the database.
+        Assert.Equal(1, await db.Users.CountAsync());
+    }
+
 
     private class FakeTokenService : ITokenService
     {
