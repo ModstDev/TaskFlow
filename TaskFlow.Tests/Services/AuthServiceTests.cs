@@ -69,7 +69,7 @@ public class AuthServiceTests
         Assert.Equal(900, response.ExpiresIn);
 
         Assert.Equal(1, tokenService.CallCount);
-        Assert.Equal(1, refreshTokenService.CallCount);
+        Assert.Equal(1, refreshTokenService.CreateCallCount);
     }
 
 
@@ -124,7 +124,7 @@ public class AuthServiceTests
         Assert.Null(response);
 
         Assert.Equal(0, tokenService.CallCount);
-        Assert.Equal(0, refreshTokenService.CallCount);
+        Assert.Equal(0, refreshTokenService.CreateCallCount);
     }
 
 
@@ -166,7 +166,7 @@ public class AuthServiceTests
         Assert.Null(response);
 
         Assert.Equal(0, tokenService.CallCount);
-        Assert.Equal(0, refreshTokenService.CallCount);
+        Assert.Equal(0, refreshTokenService.CreateCallCount);
     }
 
 
@@ -283,6 +283,106 @@ public class AuthServiceTests
         Assert.Equal(1, await db.Users.CountAsync());
     }
 
+
+    [Fact]
+    public async Task RefreshAsync_WithValidToken_ReturnsNewTokensAndRevokesOldToken()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var user = new User
+        {
+            Id = 42,
+            Username = "testuser",
+            Email = "test@example.com",
+            PasswordHash = "irrelevant-for-this-test"
+        };
+
+        var tokenService = new FakeTokenService();
+
+        var refreshTokenService = new FakeRefreshTokenService
+        {
+            UserToReturn = user
+        };
+
+        var authService = new AuthService(
+            db,
+            new PasswordHasher<User>(),
+            tokenService,
+            refreshTokenService);
+
+        var oldRefreshToken = "old-refresh-token";
+
+        // Act
+        var response = await authService.RefreshAsync(oldRefreshToken);
+
+        // Assert
+        Assert.NotNull(response);
+
+        Assert.Equal("fake-access-token", response.AccessToken);
+        Assert.Equal("fake-refresh-token", response.RefreshToken);
+        Assert.Equal(900, response.ExpiresIn);
+
+        // Verify that the old token was validated and revoked.
+        Assert.Equal(1, refreshTokenService.ValidateCallCount);
+        Assert.Equal(1, refreshTokenService.RevokeCallCount);
+        Assert.Equal(oldRefreshToken, refreshTokenService.RevokedToken);
+
+        // Verify that replacement tokens were generated.
+        Assert.Equal(1, tokenService.CallCount);
+        Assert.Equal(1, refreshTokenService.CreateCallCount);
+    }
+
+
+    [Fact]
+    public async Task RefreshAsync_WithInvalidToken_ReturnsNull()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<TaskFlowDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new TaskFlowDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var tokenService = new FakeTokenService();
+        var refreshTokenService = new FakeRefreshTokenService
+        {
+            UserToReturn = null
+        };
+
+        var authService = new AuthService(
+            db,
+            new PasswordHasher<User>(),
+            tokenService,
+            refreshTokenService);
+
+        // Act
+        var response = await authService.RefreshAsync("invalid-refresh-token");
+
+        // Assert
+        Assert.Null(response);
+
+        Assert.Equal(1, refreshTokenService.ValidateCallCount);
+
+        // No tokens should be generated or revoked.
+        Assert.Equal(0, refreshTokenService.RevokeCallCount);
+        Assert.Equal(0, refreshTokenService.CreateCallCount);
+        Assert.Equal(0, tokenService.CallCount);
+    }
+
+
     private class FakeTokenService : ITokenService
     {
         public int CallCount { get; private set; }
@@ -297,22 +397,33 @@ public class AuthServiceTests
 
     private class FakeRefreshTokenService : IRefreshTokenService
     {
-        public int CallCount { get; private set; }
+        public User? UserToReturn { get; set; }
+
+        public int CreateCallCount { get; private set; }
+        public int ValidateCallCount { get; private set; }
+        public int RevokeCallCount { get; private set; }
+
+        public string? RevokedToken { get; private set; }
 
         public Task<string> CreateAsync(User user)
         {
-            CallCount++;
+            CreateCallCount++;
 
             return Task.FromResult("fake-refresh-token");
         }
 
         public Task<User?> ValidateAsync(string refreshToken)
         {
-            return Task.FromResult<User?>(null);
+            ValidateCallCount++;
+
+            return Task.FromResult(UserToReturn);
         }
 
         public Task RevokeAsync(string refreshToken)
         {
+            RevokeCallCount++;
+            RevokedToken = refreshToken;
+
             return Task.CompletedTask;
         }
     }
